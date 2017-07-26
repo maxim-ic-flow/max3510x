@@ -31,6 +31,11 @@
  *
  ******************************************************************************/
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // The MAX3510x uses SPI Mode 1 (SCK low, negative edge)
 // byte order is big endian (most significant byte transmits first)
 
@@ -822,4 +827,7 @@
 
 #define MAX3510X_REG_CONTROL					0xFF
 
+#ifdef __cplusplus
+};
+#endif
 

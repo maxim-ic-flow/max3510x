@@ -34,6 +34,11 @@
 #include "max3510x_regs.h"
 #include <math.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #if defined(MAX35102)
 #define MAX3510X_MAX_HITCOUNT 3
 #else
@@ -259,7 +264,7 @@ float_t max3510x_calibration_factor( uint32_t input_frequency );
 
 void max3510x_spi_xfer( max3510x_t *p_max3510x, void *pv_in, const void *pv_out, uint8_t count );	// should be instantiated in the target board module
 
-#if defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM )
+#if defined( __GNUC__ ) || defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM )
 
 #if !defined(__BIG_ENDIAN)
 
@@ -274,9 +279,13 @@ void max3510x_spi_xfer( max3510x_t *p_max3510x, void *pv_in, const void *pv_out,
 #endif
 
 
-#define MAX3510X_WRITE_BITFIELD( c, r, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(##r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(##r##_##bf)) << MAX3510X_REG_##r##_##bf##_SHIFT  )
-#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(##r##_##bf##) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
+#define MAX3510X_WRITE_BITFIELD( c, r, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(r##_##bf)) << MAX3510X_REG_##r##_##bf##_SHIFT  )
+#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf##) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
 
 void max3510x_write_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
 uint16_t max3510x_read_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask );
+
+#ifdef __cplusplus
+};
+#endif
 
