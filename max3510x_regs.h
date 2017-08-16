@@ -31,11 +31,6 @@
  *
  ******************************************************************************/
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 // The MAX3510x uses SPI Mode 1 (SCK low, negative edge)
 // byte order is big endian (most significant byte transmits first)
 
@@ -55,6 +50,8 @@ extern "C"
 // This macro enables concise bitfield access using token pasting for both 'r' and 'v'
 #define MAX3510X_BF(r,v)			( (((uint16_t)( MAX3510X_REG_##r##_##v )) << MAX3510X_REG_##r##_SHIFT) & (((1<<MAX3510X_REG_##r##_WIDTH)-1) << MAX3510X_REG_##r##_SHIFT) )
 
+
+#define MAX3510X_NOMINAL_FREQUENCY	(4000000)
 
 #if !defined(MAX35102)
 #define MAX3510X_MAX_HITCOUNT			6
@@ -398,7 +395,8 @@ extern "C"
 #define MAX3510X_REG_TOF2_STOP_SHIFT			13
 #define MAX3510X_REG_TOF2_STOP_WIDTH			3
 
-#define MAX3510X_REG_TOF2_STOP(c)				((c)-1)
+#define MAX3510X_REG_TOF2_STOP_C(c)				((c)-1)			// hit count to register value
+#define MAX3510X_REG_TOF2_STOP(r)					((r)+1)			// register value to hit count
 
 #define MAX3510X_REG_TOF2_STOP_MIN				1
 #if defined(MAX35102)
@@ -692,8 +690,8 @@ extern "C"
 #define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD_MIN		0
 #define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD_MAX		MAX3510X_REG_MASK(CALIBRATION_CONTROL_CAL_PERIOD)
 
-#define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD_US(c)	(((c)*2/61)-1)
-#define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD(c)		(((c)+1)*61/2)
+#define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD_US(c)	(((c)*2/61)-1)	// given us, return register value
+#define MAX3510X_REG_CALIBRATION_CONTROL_CAL_PERIOD(c)		(((c)+1)*61/2)	// given register value, return us
 
 #define MAX3510X_REG_RTC						0x43
 
@@ -825,9 +823,20 @@ extern "C"
 
 #define MAX3510X_REG_INTERRUPT_STATUS_POR		(1<<2)		// power-on-reset
 
+#define MAX3510X_REG_INTERRUPT_STATUS_INVALID		0xFFFF		// state machine in reset
+
 #define MAX3510X_REG_CONTROL					0xFF
 
-#ifdef __cplusplus
-};
+#define MAX3510X_REG_CONTROL_AFA_SHIFT		9
+#define MAX3510X_REG_CONTROL_AFA_WIDTH		1
+
+#define MAX3510X_REG_CONTROL_CSWA_SHIFT		8
+#define MAX3510X_REG_CONTROL_CSWA_WIDTH		1
+
+#if defined(MAX35104)
+
+#define MAX3510X_REG_CONTROL_HWR_SHIFT		0
+#define MAX3510X_REG_CONTROL_HWR_WIDTH		4
+
 #endif
 

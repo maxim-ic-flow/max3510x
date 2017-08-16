@@ -34,11 +34,6 @@
 #include "max3510x_regs.h"
 #include <math.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #if defined(MAX35102)
 #define MAX3510X_MAX_HITCOUNT 3
 #else
@@ -170,7 +165,7 @@ typedef struct _max3510x_registers_t
 max3510x_registers_t;
 
 
-typedef void * max3510x_t;
+typedef void*  max3510x_t;
 
 #pragma pack()
 
@@ -202,42 +197,45 @@ typedef struct _max3510x_float_results_t
 }
 max3510x_float_results_t;
 
-void max3510x_set_measurement_delay( max3510x_t *p_max3510x, float_t delay_us );
+void max3510x_set_measurement_delay(max3510x_t p_max3510x, float_t delay_us );
 float_t max3510x_fixed_to_float( const max3510x_fixed_t *p_number );
 double_t max3510x_fixed_to_double(const max3510x_fixed_t *p_number );
 float_t max3510x_ratio_to_float( uint8_t fixed );
 void max3510x_convert_results( max3510x_float_results_t *p_float_results, const max3510x_results_t * p_results );
 bool max3510x_validate_measurement( const max3510x_measurement_t *p_measurement, uint8_t hit_count );
-void max3510x_read_fixed( max3510x_t *p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed );
-uint16_t max3510x_read_register( max3510x_t *p_max3510x, uint8_t reg_offset );
-void max3510x_write_register( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t value );
-void max3510x_write_registers( max3510x_t *p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
-void max3510x_write_registers_const( max3510x_t *p_max3510x, const max3510x_register_t *p_reg, uint8_t size );
-void max3510x_read_registers( max3510x_t *p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
-uint16_t max3510x_interrupt_status( max3510x_t *p_max3510x );
-void max3510x_read_results( max3510x_t *p_max3510x, max3510x_results_t *p_results );
-void max3510x_init( max3510x_t *p_max3510x, const max3510x_registers_t * p_init );
-void max3510x_tof_up( max3510x_t *p_max3510x );
-void max3510x_tof_down( max3510x_t *p_max3510x );
-void max3510x_tof_diff( max3510x_t *p_max3510x );
-void max3510x_temperature( max3510x_t *p_max3510x );
-void max3510x_reset( max3510x_t *p_max3510x );
-void max3510x_initialize( max3510x_t *p_max3510x );
-void max3510x_enable_interrupt( max3510x_t *p_max3510x, bool enable );
+void max3510x_read_fixed(max3510x_t p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed );
+void max3510x_read_ratios( max3510x_t p_max3510x, uint8_t reg, uint8_t *p_t1_t2, uint8_t *p_t2_ideal );
+uint16_t max3510x_read_register(max3510x_t p_max3510x, uint8_t reg_offset );
+void max3510x_write_register(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t value );
+void max3510x_write_registers(max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
+void max3510x_write_registers_const(max3510x_t p_max3510x, const max3510x_register_t *p_reg, uint8_t size );
+void max3510x_read_registers(max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
+uint16_t max3510x_interrupt_status(max3510x_t p_max3510x );
+void max3510x_read_results(max3510x_t p_max3510x, max3510x_results_t *p_results );
+void max3510x_init(max3510x_t p_max3510x, const max3510x_registers_t * p_init );
+void max3510x_tof_up(max3510x_t p_max3510x );
+void max3510x_tof_down(max3510x_t p_max3510x );
+void max3510x_tof_diff(max3510x_t p_max3510x );
+void max3510x_temperature(max3510x_t p_max3510x );
+void max3510x_reset(max3510x_t p_max3510x );
+void max3510x_initialize(max3510x_t p_max3510x );
+void max3510x_enable_interrupt(max3510x_t p_max3510x, bool enable );
+void max3510x_wait_for_reset_complete(max3510x_t p_max3510x );
+uint16_t max3510x_poll_interrupt_status( max3510x_t p_max3510x );
 
 #if !defined(MAX35104)
 
 uint16_t max3510x_unlock(max3510x_t *p_max3510x );
-void max3510x_flash_configuration( max3510x_t *p_max3510x );
+void max3510x_flash_configuration(max3510x_t p_max3510x );
 
 #else
 
-void max3510x_bandpass_calibrate( max3510x_t *p_max3510x );
+void max3510x_bandpass_calibrate(max3510x_t p_max3510x );
 
 #endif
 
-void max3510x_event_timing( max3510x_t *p_max3510x, max3510x_event_timing_mode_t mode );
-void max3510x_halt( max3510x_t *p_max3510x );
+void max3510x_event_timing(max3510x_t p_max3510x, max3510x_event_timing_mode_t mode );
+void max3510x_halt(max3510x_t p_max3510x );
 
 #if defined(MAX35103) || defined(MAX35101)
 
@@ -250,21 +248,21 @@ typedef enum
 }
 max3510x_ldo_mode_t;
 
-void max3510x_ldo( max3510x_t *p_max3510x, max3510x_ldo_mode_t mode );
-void max3510x_write_flash( max3510x_t *p_max3510x, uint16_t address, uint16_t value );
-uint16_t max3510x_read_flash( max3510x_t *p_max3510x, uint16_t address );
-void max3510x_erase_flash_block( max3510x_t *p_max3510x, uint16_t address );
+void max3510x_ldo(max3510x_t p_max3510x, max3510x_ldo_mode_t mode );
+void max3510x_write_flash(max3510x_t p_max3510x, uint16_t address, uint16_t value );
+uint16_t max3510x_read_flash(max3510x_t p_max3510x, uint16_t address );
+void max3510x_erase_flash_block(max3510x_t p_max3510x, uint16_t address );
 
 #endif
 
-void max3510x_calibrate( max3510x_t *p_max3510x );
+void max3510x_calibrate(max3510x_t p_max3510x );
 uint32_t max3510x_input_frequency( max3510x_fixed_t * p_calibration_value );
 
 float_t max3510x_calibration_factor( uint32_t input_frequency );
 
-void max3510x_spi_xfer( max3510x_t *p_max3510x, void *pv_in, const void *pv_out, uint8_t count );	// should be instantiated in the target board module
+void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, uint8_t count );	// should be instantiated in the target board module
 
-#if defined( __GNUC__ ) || defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM )
+#if defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM )
 
 #if !defined(__BIG_ENDIAN)
 
@@ -280,12 +278,8 @@ void max3510x_spi_xfer( max3510x_t *p_max3510x, void *pv_in, const void *pv_out,
 
 
 #define MAX3510X_WRITE_BITFIELD( c, r, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(r##_##bf)) << MAX3510X_REG_##r##_##bf##_SHIFT  )
-#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf##) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
+#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(##r##_##bf##) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
 
-void max3510x_write_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
-uint16_t max3510x_read_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask );
-
-#ifdef __cplusplus
-};
-#endif
+void max3510x_write_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
+uint16_t max3510x_read_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask );
 
