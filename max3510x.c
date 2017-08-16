@@ -42,13 +42,13 @@
 #define FREQ_REF	4000000.0	// the assumed input 4MX clock frequency.
 
 
-void max3510x_write_registers_const( max3510x_t *p_max3510x, const max3510x_register_t *p_reg, uint8_t size )
+void max3510x_write_registers_const( max3510x_t p_max3510x, const max3510x_register_t *p_reg, uint8_t size )
 {
 	// this function does not handle endianess.  Registers must be in little-endian format.
 	max3510x_spi_xfer( p_max3510x, NULL, p_reg, size );
 }
 
-void max3510x_write_registers( max3510x_t *p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size )
+void max3510x_write_registers( max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size )
 {
 #if defined(MAX3510X_ENDIAN_SWAP)
 
@@ -70,7 +70,7 @@ void max3510x_write_registers( max3510x_t *p_max3510x, uint8_t register_offset, 
 	max3510x_spi_xfer( p_max3510x, NULL, p_reg, size );
 }
 
-void max3510x_read_registers( max3510x_t *p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size )
+void max3510x_read_registers( max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size )
 {
 	p_reg->offset = MAX3510X_OPCODE_READ_REG(register_offset);
 	max3510x_spi_xfer( p_max3510x, p_reg, p_reg, size );
@@ -85,21 +85,21 @@ void max3510x_read_registers( max3510x_t *p_max3510x, uint8_t register_offset, m
 #endif // #if defined(MAX3510X_ENDIAN_SWAP)
 }
 
-uint16_t max3510x_read_register( max3510x_t *p_max3510x, uint8_t reg_offset )
+uint16_t max3510x_read_register( max3510x_t p_max3510x, uint8_t reg_offset )
 {
 	max3510x_register_t r;
 	max3510x_read_registers( p_max3510x, reg_offset, &r, sizeof(r));
 	return r.value;
 }
 
-void max3510x_write_register( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t value )
+void max3510x_write_register( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t value )
 {
 	max3510x_register_t r;
 	r.value = value;
 	max3510x_write_registers( p_max3510x, reg_offset, &r, sizeof(r) );
 }
 
-void max3510x_write_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value )
+void max3510x_write_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value )
 {
 	// value must be shifted into the proper posisiton
 	// use the MAX3510X_WRITE_BITFIELD macro instead
@@ -107,7 +107,7 @@ void max3510x_write_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16
 	max3510x_write_register(p_max3510x, reg_offset, value );
 }
 
-uint16_t max3510x_read_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uint16_t mask )
+uint16_t max3510x_read_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask )
 {
 	// returned bitfield must be shifted into the proper posisiton
 	// use the MAX3510X_READ_BITFIELD macro instead
@@ -117,7 +117,7 @@ uint16_t max3510x_read_bitfield( max3510x_t *p_max3510x, uint8_t reg_offset, uin
 	return value;
 }
 
-static void send_opcode( max3510x_t *p_max3510x, uint8_t code )
+static void send_opcode( max3510x_t p_max3510x, uint8_t code )
 {
 	// send an opcode to the MAX3510x
 	uint8_t result;
@@ -286,7 +286,7 @@ void max3510x_rtc_set( uint16_t *p_rtc_data, const rtc_date_t *p_date )
 
 #if defined(MAX35104)
 
-uint16_t max3510x_unlock(max3510x_t *p_max3510x )
+uint16_t max3510x_unlock(max3510x_t p_max3510x )
 {
 	uint16_t afe1 = max3510x_read_register(p_max3510x, MAX3510X_REG_AFE1 );
 	uint16_t write_back = MAX3510X_REG_GET(AFE1_WRITEBACK,afe1);
@@ -295,7 +295,7 @@ uint16_t max3510x_unlock(max3510x_t *p_max3510x )
 }
 #endif
 
-void max3510x_init( max3510x_t *p_max3510x, const max3510x_registers_t * p_regs )
+void max3510x_init( max3510x_t p_max3510x, const max3510x_registers_t * p_regs )
 {
 
 #if defined(MAX35104)
@@ -310,24 +310,45 @@ void max3510x_init( max3510x_t *p_max3510x, const max3510x_registers_t * p_regs 
 
 	max3510x_write_registers_const( p_max3510x, (const max3510x_register_t *)&p_regs->common, sizeof(p_regs->common) );
 
-#if defined(MAX35104)
-	max3510x_bandpass_calibrate(p_max3510x);
-#endif
 }
 
-uint16_t max3510x_interrupt_status( max3510x_t *p_max3510x )
+uint16_t max3510x_interrupt_status( max3510x_t p_max3510x )
 {
 	return max3510x_read_register( p_max3510x, MAX3510X_REG_INTERRUPT_STATUS );
 }
 
-void max3510x_read_results( max3510x_t *p_max3510x, max3510x_results_t *p_results )
+uint16_t max3510x_poll_interrupt_status( max3510x_t p_max3510x )
+{
+	uint16_t status;
+	while( !(status = max3510x_interrupt_status( p_max3510x ) ) );
+	return status;
+}
+
+void max3510x_wait_for_reset_complete( max3510x_t p_max3510x )
+{
+	// afeter issuing max3510x_reset(), this function can be used to delay until the chip
+	// has completed reset.
+	while( max3510x_interrupt_status(p_max3510x) == MAX3510X_REG_INTERRUPT_STATUS_INVALID );  // the max3510x is unresponsive during reset processing
+}
+
+void max3510x_read_results( max3510x_t p_max3510x, max3510x_results_t *p_results )
 {
 	// read all data registers
 	max3510x_read_registers( p_max3510x, MAX3510X_REG_WVRUP, (max3510x_register_t*)p_results, sizeof(max3510x_results_t) );
 
 }
 
-void max3510x_read_fixed( max3510x_t *p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed )
+void max3510x_read_ratios( max3510x_t p_max3510x, uint8_t reg, uint8_t *p_t1_t2, uint8_t *p_t2_ideal )
+{
+	uint8_t buf[sizeof(uint8_t)*2+1];
+	max3510x_read_registers(p_max3510x,reg,(max3510x_register_t*)&buf[0],sizeof(buf));
+	if( p_t1_t2 )
+		*p_t1_t2 = buf[2];
+	if( p_t2_ideal )
+		*p_t2_ideal = buf[1];
+}
+
+void max3510x_read_fixed( max3510x_t p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed )
 {
 	uint8_t buf[sizeof(max3510x_fixed_t)+1];
 	max3510x_read_registers(p_max3510x,reg,(max3510x_register_t*)&buf[0],sizeof(buf));
@@ -335,54 +356,56 @@ void max3510x_read_fixed( max3510x_t *p_max3510x, uint8_t reg, max3510x_fixed_t 
 }
 
 
-void max3510x_tof_up( max3510x_t *p_max3510x )
+void max3510x_tof_up( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_TOF_UP );
 }
 
-void max3510x_tof_down( max3510x_t *p_max3510x )
+void max3510x_tof_down( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_TOF_DOWN );
 }
 
-void max3510x_tof_diff( max3510x_t *p_max3510x )
+void max3510x_tof_diff( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_TOF_DIFF );
 }
 
-void max3510x_temperature( max3510x_t *p_max3510x )
+void max3510x_temperature( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_TEMPERATURE );
 }
 
-void max3510x_reset( max3510x_t *p_max3510x )
+void max3510x_reset( max3510x_t p_max3510x )
 {
+	// the chip will become unresponsive to SPI transactions for 275us (typical) after recieving this command.
+	// while unresponsive, reads to status register will return MAX3510X_REG_INTERRUPT_STATUS_INVALID
 	send_opcode( p_max3510x, MAX3510X_OPCODE_RESET );
 }
 
-void max3510x_initialize( max3510x_t *p_max3510x )
+void max3510x_initialize( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_INITIALIZE );
 }
 
 #if !defined(MAX35104)
-void max3510x_flash_configuration( max3510x_t *p_max3510x )
+void max3510x_flash_configuration( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_FLASH );
 }
 #else // #if !defined(MAX35104)
-void max3510x_bandpass_calibrate( max3510x_t *p_max3510x )
+void max3510x_bandpass_calibrate( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_BANDPASS_CALIBRATE );
 }
 #endif // #if !defined(MAX35104)
 
-void max3510x_halt( max3510x_t *p_max3510x )
+void max3510x_halt( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_HALT );
 }
 
-void max3510x_event_timing( max3510x_t *p_max3510x, max3510x_event_timing_mode_t mode )
+void max3510x_event_timing( max3510x_t p_max3510x, max3510x_event_timing_mode_t mode )
 {
 	// send event timing opcodes
 
@@ -406,7 +429,7 @@ void max3510x_event_timing( max3510x_t *p_max3510x, max3510x_event_timing_mode_t
 
 #if defined(MAX35103) || defined(MAX35101)
 
-void max3510x_ldo( max3510x_t *p_max3510x, max3510x_ldo_mode_t mode )
+void max3510x_ldo( max3510x_t p_max3510x, max3510x_ldo_mode_t mode )
 {
 	// send LDO-related opcodes (not available on the MAX35101)
 
@@ -430,7 +453,7 @@ void max3510x_ldo( max3510x_t *p_max3510x, max3510x_ldo_mode_t mode )
 
 #endif
 
-void max3510x_calibrate( max3510x_t *p_max3510x )
+void max3510x_calibrate( max3510x_t p_max3510x )
 {
 	send_opcode( p_max3510x, MAX3510X_OPCODE_CALIBRATE );
 }
@@ -488,7 +511,7 @@ bool max3510x_validate_measurement( const max3510x_measurement_t *p_measurement,
 	return ave == m;
 }
 
-void max3510x_set_measurement_delay( max3510x_t *p_max3510x, float_t delay_us )
+void max3510x_set_measurement_delay( max3510x_t p_max3510x, float_t delay_us )
 {
 	uint16_t reg_value = (uint16_t)MAX3510X_REG_TOF_MEASUREMENT_DELAY_DLY_US(delay_us);
 	if(  reg_value < MAX3510X_REG_TOF_MEASUREMENT_DELAY_DLY_MINIMUM )
@@ -582,7 +605,7 @@ max3510x_flash_t;
 
 #pragma pack()
 
-void max3510x_write_flash( max3510x_t *p_max3510x, uint16_t address, uint16_t value )
+void max3510x_write_flash( max3510x_t p_max3510x, uint16_t address, uint16_t value )
 {
 	max3510x_flash_t flash;
 	flash.cmd.cmd = MAX3510X_OPCODE_WRITE_FLASH;
@@ -591,7 +614,7 @@ void max3510x_write_flash( max3510x_t *p_max3510x, uint16_t address, uint16_t va
 	max3510x_spi_xfer( p_max3510x, NULL, &flash, sizeof(flash) );
 }
 
-uint16_t max3510x_read_flash( max3510x_t *p_max3510x, uint16_t address )
+uint16_t max3510x_read_flash( max3510x_t p_max3510x, uint16_t address )
 {
 	max3510x_flash_t flash;
 	flash.cmd.cmd = MAX3510X_OPCODE_READ_FLASH;
@@ -601,7 +624,7 @@ uint16_t max3510x_read_flash( max3510x_t *p_max3510x, uint16_t address )
 	return flash.value;
 }
 
-void max3510x_erase_flash_block( max3510x_t *p_max3510x, uint16_t address )
+void max3510x_erase_flash_block( max3510x_t p_max3510x, uint16_t address )
 {
 	max3510x_flash_cmd_t cmd;
 	cmd.cmd = MAX3510X_OPCODE_ERASE_FLASH;
@@ -611,7 +634,8 @@ void max3510x_erase_flash_block( max3510x_t *p_max3510x, uint16_t address )
 
 #endif // #if defined(MAX35103)
 
-void max3510x_enable_interrupt( max3510x_t *p_max3510x, bool enable )
+void max3510x_enable_interrupt( max3510x_t p_max3510x, bool enable )
 {
 	MAX3510X_WRITE_BITFIELD(p_max3510x, CALIBRATION_CONTROL, INT_EN, enable ? MAX3510X_REG_CALIBRATION_CONTROL_INT_EN_ENABLED : MAX3510X_REG_CALIBRATION_CONTROL_INT_EN_DISABLED );
 }
+
