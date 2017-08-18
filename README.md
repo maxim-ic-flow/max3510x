@@ -1,5 +1,5 @@
 # max3510x
-MAXIM3510x time-to-digital convertor firmware API
+MAX3510x time-to-digital convertor firmware API
 
 Supported Chips:  MAX35102, MAX35103, and MAX35104
 
