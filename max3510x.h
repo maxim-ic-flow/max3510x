@@ -187,13 +187,13 @@ typedef struct _max3510x_float_results_t
 	max3510x_float_measurement_t	up;
 	max3510x_float_measurement_t	down;
 	float_t				tof_diff;
+	float_t				tof_diff_ave;
+	float_t				temp[MAX3510X_TEMPERATURE_COUNT];
+	float_t				ave_temp[MAX3510X_TEMPERATURE_COUNT];
+	float_t				calibration;
 	uint8_t				tof_range;
 	uint8_t				tof_cycle_count;
-	float_t				tof_diff_ave;
-	float_t				temp[4];
 	uint8_t				temp_cycle_count;
-	float_t				ave_temp[4];
-	float_t				calibration;
 }
 max3510x_float_results_t;
 
@@ -262,7 +262,7 @@ float_t max3510x_calibration_factor( uint32_t input_frequency );
 
 void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, uint8_t count );	// should be instantiated in the target board module
 
-#if defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM )
+#if defined( __IAR_SYSTEMS_ICC__ ) || defined( __CC_ARM ) || defined(__GNUC__)
 
 #if !defined(__BIG_ENDIAN)
 

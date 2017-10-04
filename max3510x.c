@@ -577,7 +577,7 @@ void max3510x_convert_results( max3510x_float_results_t *p_float_results, const 
 
 	p_float_results->tof_diff_ave = max3510x_fixed_to_float( &p_results->tof_diff_ave );
 
-	for(i=0;i<4;i++)
+	for(i=0;i<MAX3510X_TEMPERATURE_COUNT;i++)
 	{
 		p_float_results->temp[i] = max3510x_fixed_to_float( &p_results->temp[i] );
 		p_float_results->ave_temp[i] = max3510x_fixed_to_float( &p_results->ave_temp[i] );
