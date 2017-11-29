@@ -31,6 +31,9 @@
  *
  ******************************************************************************/
 
+#ifndef __MAX3510X_H__
+#define __MAX3510X_H__
+
 #include "max3510x_regs.h"
 #include <math.h>
 
@@ -64,9 +67,9 @@ void max3510x_rtc_set( uint16_t *p_rtc_data, const rtc_date_t *p_date );
 typedef enum
 {
 	// event timing modes for the MAX35103 and MAX35104
-	max3510x_event_timing_mode_1,
-	max3510x_event_timing_mode_2,
-	max3510x_event_timing_mode_3
+	max3510x_event_timing_mode_tof_temp,	// aka mode 2
+	max3510x_event_timing_mode_tof,			// aka mode 1
+	max3510x_event_timing_mode_temp			// aka mode 3
 }
 max3510x_event_timing_mode_t;
 
@@ -99,16 +102,34 @@ typedef struct _max3510x_results_t
 	max3510x_measurement_t	up;
 	max3510x_measurement_t	down;
 	max3510x_fixed_t		tof_diff;
+#if defined(__BIG_ENDIAN)
 	uint8_t					tof_range;
 	uint8_t					tof_cycle_count;
+#else
+	uint8_t					tof_cycle_count;
+	uint8_t					tof_range;
+#endif
 	max3510x_fixed_t		tof_diff_ave;
 	max3510x_fixed_t		temp[4];
+#if defined(__BIG_ENDIAN)
 	uint8_t					undefined2;
 	uint8_t					temp_cycle_count;
+#else
+	uint8_t					temp_cycle_count;
+	uint8_t					undefined2;
+#endif
 	max3510x_fixed_t		ave_temp[4];
 	max3510x_fixed_t		calibration;
 }
 max3510x_results_t;
+
+typedef struct _max3510x_direction_result_t
+{
+	uint8_t					start_register;
+	max3510x_measurement_t	direction;
+}
+max3510x_direction_result_t;
+
 
 typedef struct _max3510x_register_t
 {
@@ -116,6 +137,63 @@ typedef struct _max3510x_register_t
 	uint16_t	value;
 }
 max3510x_register_t;
+
+typedef struct _max3510x_fixed_register_t
+{
+	uint8_t				offset;
+	max3510x_fixed_t	value;
+}
+max3510x_fixed_register_t;
+
+typedef struct _max3510x_register2_t
+{
+	uint8_t		offset;
+	uint16_t	value[2];
+}
+max3510x_register2_t;
+
+typedef struct _max3510x_register3_t
+{
+	uint8_t		offset;
+	uint16_t	value[3];
+}
+max3510x_register3_t;
+
+typedef struct _max3510x_register4_t
+{
+	uint8_t		offset;
+	uint16_t	value[4];
+}
+max3510x_register4_t;
+
+typedef struct _max3510x_register5_t
+{
+	uint8_t		offset;
+	uint16_t	value[5];
+}
+max3510x_register5_t;
+
+typedef struct _max3510x_register6_t
+{
+	uint8_t		offset;
+	uint16_t	value[6];
+}
+max3510x_register6_t;
+
+typedef struct _max3510x_register7_t
+{
+	uint8_t		offset;
+	uint16_t	value[7];
+}
+max3510x_register7_t;
+
+typedef struct _max3510x_register8_t
+{
+	uint8_t		offset;
+	uint16_t	value[8];
+}
+max3510x_register8_t;
+
 
 #if defined(MAX35104)
 
@@ -180,6 +258,8 @@ typedef struct _max3510x_float_measurement_t
 }
 max3510x_float_measurement_t;
 
+#define MAX3510X_TEMP_COUNT	4
+
 typedef struct _max3510x_float_results_t
 {
 	// 32-bit float representation for all measurement data
@@ -188,14 +268,18 @@ typedef struct _max3510x_float_results_t
 	max3510x_float_measurement_t	down;
 	float_t				tof_diff;
 	float_t				tof_diff_ave;
-	float_t				temp[MAX3510X_TEMPERATURE_COUNT];
-	float_t				ave_temp[MAX3510X_TEMPERATURE_COUNT];
+	float_t				temp[MAX3510X_TEMP_COUNT];
+	float_t				ave_temp[MAX3510X_TEMP_COUNT];
 	float_t				calibration;
-	uint8_t				tof_range;
-	uint8_t				tof_cycle_count;
-	uint8_t				temp_cycle_count;
 }
 max3510x_float_results_t;
+
+typedef enum _max3510x_direction_t
+{
+	max3510x_direction_up,
+	max3510x_direction_down
+}
+max3510x_direction_t;
 
 void max3510x_set_measurement_delay(max3510x_t p_max3510x, float_t delay_us );
 float_t max3510x_fixed_to_float( const max3510x_fixed_t *p_number );
@@ -212,6 +296,7 @@ void max3510x_write_registers_const(max3510x_t p_max3510x, const max3510x_regist
 void max3510x_read_registers(max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
 uint16_t max3510x_interrupt_status(max3510x_t p_max3510x );
 void max3510x_read_results(max3510x_t p_max3510x, max3510x_results_t *p_results );
+void max3510x_read_direction( max3510x_t p_max3510x, max3510x_direction_t direction, max3510x_direction_result_t * p_result );
 void max3510x_init(max3510x_t p_max3510x, const max3510x_registers_t * p_init );
 void max3510x_tof_up(max3510x_t p_max3510x );
 void max3510x_tof_down(max3510x_t p_max3510x );
@@ -222,12 +307,13 @@ void max3510x_initialize(max3510x_t p_max3510x );
 void max3510x_enable_interrupt(max3510x_t p_max3510x, bool enable );
 void max3510x_wait_for_reset_complete(max3510x_t p_max3510x );
 uint16_t max3510x_poll_interrupt_status( max3510x_t p_max3510x );
+uint16_t max3510x_control_register( max3510x_t p_max3510x );
 
 #if !defined(MAX35104)
 
 uint16_t max3510x_unlock(max3510x_t *p_max3510x );
 void max3510x_flash_configuration(max3510x_t p_max3510x );
-
+	
 #else
 
 void max3510x_bandpass_calibrate(max3510x_t p_max3510x );
@@ -258,7 +344,7 @@ void max3510x_erase_flash_block(max3510x_t p_max3510x, uint16_t address );
 void max3510x_calibrate(max3510x_t p_max3510x );
 uint32_t max3510x_input_frequency( max3510x_fixed_t * p_calibration_value );
 
-float_t max3510x_calibration_factor( uint32_t input_frequency );
+float_t max3510x_calibration_factor( float_t input_frequency );
 
 void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, uint8_t count );	// should be instantiated in the target board module
 
@@ -282,4 +368,8 @@ void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, u
 
 void max3510x_write_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
 uint16_t max3510x_read_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask );
+
+uint16_t max3510x_spi_test( max3510x_t p_max3510x );
+
+#endif
 

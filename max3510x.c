@@ -48,6 +48,7 @@ void max3510x_write_registers_const( max3510x_t p_max3510x, const max3510x_regis
 	max3510x_spi_xfer( p_max3510x, NULL, p_reg, size );
 }
 
+
 void max3510x_write_registers( max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size )
 {
 #if defined(MAX3510X_ENDIAN_SWAP)
@@ -97,6 +98,13 @@ void max3510x_write_register( max3510x_t p_max3510x, uint8_t reg_offset, uint16_
 	max3510x_register_t r;
 	r.value = value;
 	max3510x_write_registers( p_max3510x, reg_offset, &r, sizeof(r) );
+}
+
+uint16_t max3510x_write_shadow_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t shadow, uint16_t value )
+{
+	value = (shadow & ~mask) | value;
+	max3510x_write_register(p_max3510x, reg_offset, value );
+	return value;
 }
 
 void max3510x_write_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value )
@@ -317,6 +325,11 @@ uint16_t max3510x_interrupt_status( max3510x_t p_max3510x )
 	return max3510x_read_register( p_max3510x, MAX3510X_REG_INTERRUPT_STATUS );
 }
 
+uint16_t max3510x_control_register( max3510x_t p_max3510x )
+{
+	return max3510x_read_register( p_max3510x, MAX3510X_REG_CONTROL );
+}
+
 uint16_t max3510x_poll_interrupt_status( max3510x_t p_max3510x )
 {
 	uint16_t status;
@@ -338,6 +351,11 @@ void max3510x_read_results( max3510x_t p_max3510x, max3510x_results_t *p_results
 
 }
 
+void max3510x_read_direction( max3510x_t p_max3510x, max3510x_direction_t direction, max3510x_direction_result_t * p_result )
+{
+	max3510x_read_registers( p_max3510x, direction==max3510x_direction_up ? MAX3510X_REG_WVRUP : MAX3510X_REG_WVRDN, (max3510x_register_t*)p_result, sizeof(max3510x_direction_result_t) );
+}
+
 void max3510x_read_ratios( max3510x_t p_max3510x, uint8_t reg, uint8_t *p_t1_t2, uint8_t *p_t2_ideal )
 {
 	uint8_t buf[sizeof(uint8_t)*2+1];
@@ -350,11 +368,10 @@ void max3510x_read_ratios( max3510x_t p_max3510x, uint8_t reg, uint8_t *p_t1_t2,
 
 void max3510x_read_fixed( max3510x_t p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed )
 {
-	uint8_t buf[sizeof(max3510x_fixed_t)+1];
-	max3510x_read_registers(p_max3510x,reg,(max3510x_register_t*)&buf[0],sizeof(buf));
-	*p_fixed = *(max3510x_fixed_t*)&buf[1];
+	max3510x_fixed_register_t fixed_reg;
+	max3510x_read_registers(p_max3510x,reg,(max3510x_register_t*)&fixed_reg,sizeof( fixed_reg ));
+	*p_fixed = fixed_reg.value;
 }
-
 
 void max3510x_tof_up( max3510x_t p_max3510x )
 {
@@ -412,13 +429,13 @@ void max3510x_event_timing( max3510x_t p_max3510x, max3510x_event_timing_mode_t 
 	uint8_t opcode;
 	switch( mode )
 	{
-		case max3510x_event_timing_mode_1:
-			opcode = MAX3510X_OPCODE_EVTMG1;
-			break;
-		case max3510x_event_timing_mode_2:
+		case max3510x_event_timing_mode_tof:
 			opcode = MAX3510X_OPCODE_EVTMG2;
 			break;
-		case max3510x_event_timing_mode_3:
+		case max3510x_event_timing_mode_tof_temp:
+			opcode = MAX3510X_OPCODE_EVTMG1;
+			break;
+		case max3510x_event_timing_mode_temp:
 			opcode = MAX3510X_OPCODE_EVTMG3;
 			break;
 		default:
@@ -522,17 +539,17 @@ void max3510x_set_measurement_delay( max3510x_t p_max3510x, float_t delay_us )
 
 uint32_t max3510x_input_frequency( max3510x_fixed_t *p_calibration_value )
 {
-	// returns the oscilation frequency of the signal on the 4MX1 pin.
+	// returns the oscillation frequency of the signal on the 4MX1 pin.
 	// This fucntion assumes that the 32.768KHz oscillator period is exactly 32.768KHz
 	uint32_t v = (((uint32_t)p_calibration_value->integer) << 16) + ((uint32_t)p_calibration_value->fraction);
 	return v >> 1;
 }
 
-float_t max3510x_calibration_factor( uint32_t input_frequency )
+float_t max3510x_calibration_factor( float_t input_frequency )
 {
 	// returns the factor by which uncorrected time values based
 	// on the 4MX/X1 oscillator input can be corrected.
-	return ((float_t)input_frequency)/((float_t)FREQ_REF);
+	return (input_frequency)/((float_t)FREQ_REF);
 }
 
 float_t max3510x_fixed_to_float( const max3510x_fixed_t *p_number )
@@ -559,8 +576,8 @@ void max3510x_convert_results( max3510x_float_results_t *p_float_results, const 
 
 	p_float_results->up.t1_t2 = max3510x_ratio_to_float(p_results->up.t1_t2);
 	p_float_results->up.t2_ideal = max3510x_ratio_to_float(p_results->up.t2_ideal);
-	p_float_results->down.t1_t2 = max3510x_ratio_to_float(p_results->up.t1_t2);
-	p_float_results->down.t2_ideal = max3510x_ratio_to_float(p_results->up.t2_ideal);
+	p_float_results->down.t1_t2 = max3510x_ratio_to_float(p_results->down.t1_t2);
+	p_float_results->down.t2_ideal = max3510x_ratio_to_float(p_results->down.t2_ideal);
 
 	uint8_t i;
 	for(i=0;i<MAX3510X_MAX_HITCOUNT;i++)
@@ -572,17 +589,13 @@ void max3510x_convert_results( max3510x_float_results_t *p_float_results, const 
 	p_float_results->down.average = max3510x_fixed_to_float( &p_results->down.average );
 	p_float_results->tof_diff = max3510x_fixed_to_float( &p_results->tof_diff );
 
-	p_float_results->tof_range = p_results->tof_range;
-	p_float_results->tof_cycle_count = p_results->tof_cycle_count;
-
 	p_float_results->tof_diff_ave = max3510x_fixed_to_float( &p_results->tof_diff_ave );
 
-	for(i=0;i<MAX3510X_TEMPERATURE_COUNT;i++)
+	for(i=0;i<MAX3510X_TEMP_COUNT;i++)
 	{
 		p_float_results->temp[i] = max3510x_fixed_to_float( &p_results->temp[i] );
 		p_float_results->ave_temp[i] = max3510x_fixed_to_float( &p_results->ave_temp[i] );
 	}
-	p_float_results->temp_cycle_count = p_results->temp_cycle_count;
 	p_float_results->calibration = max3510x_fixed_to_float( &p_results->calibration );
 }
 
@@ -638,4 +651,20 @@ void max3510x_enable_interrupt( max3510x_t p_max3510x, bool enable )
 {
 	MAX3510X_WRITE_BITFIELD(p_max3510x, CALIBRATION_CONTROL, INT_EN, enable ? MAX3510X_REG_CALIBRATION_CONTROL_INT_EN_ENABLED : MAX3510X_REG_CALIBRATION_CONTROL_INT_EN_DISABLED );
 }
+
+uint16_t max3510x_spi_test( max3510x_t p_max3510x )
+{
+	// test to help validate SPI hardware and max3510x_spi_xfer()
+	
+	uint32_t x;
+	uint16_t e = 0;
+	for(x=0;x<0x10000;x++)
+	{
+		max3510x_write_register(p_max3510x, MAX3510X_REG_TOF_MEASUREMENT_DELAY, x );
+		if( x != max3510x_read_register(p_max3510x, MAX3510X_REG_TOF_MEASUREMENT_DELAY) )
+			e++;
+	}
+	return e;
+}
+	
 
