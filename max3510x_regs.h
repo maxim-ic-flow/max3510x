@@ -40,7 +40,7 @@
 #error Define the target chip type for max3510x_regs.h:  MAX35101, MAX35102, MAX35103, or max35104
 #endif
 
-#define MAX3510X_REG_MASK(r)		((1 << MAX3510X_REG_##r##_WIDTH ) - 1) 
+#define MAX3510X_REG_MASK(rr)		((1 << MAX3510X_REG_##rr##_WIDTH ) - 1) 
 
 // The following macros enable bitfield access
 // 'r' is token pasted, 'v' is not.

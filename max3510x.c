@@ -344,11 +344,14 @@ void max3510x_wait_for_reset_complete( max3510x_t p_max3510x )
 	while( max3510x_interrupt_status(p_max3510x) == MAX3510X_REG_INTERRUPT_STATUS_INVALID );  // the max3510x is unresponsive during reset processing
 }
 
-void max3510x_read_results( max3510x_t p_max3510x, max3510x_results_t *p_results )
+void max3510x_read_tof_results( max3510x_t p_max3510x, max3510x_tof_results_t *p_results )
 {
-	// read all data registers
-	max3510x_read_registers( p_max3510x, MAX3510X_REG_WVRUP, (max3510x_register_t*)p_results, sizeof(max3510x_results_t) );
+	max3510x_read_registers( p_max3510x, MAX3510X_REG_WVRUP, (max3510x_register_t*)p_results, sizeof(max3510x_tof_results_t) );
+}
 
+void max3510x_read_temp_results( max3510x_t p_max3510x, max3510x_temp_results_t *p_results )
+{
+	max3510x_read_registers( p_max3510x, MAX3510X_REG_T1INT, (max3510x_register_t*)p_results, sizeof(max3510x_temp_results_t) );
 }
 
 void max3510x_read_direction( max3510x_t p_max3510x, max3510x_direction_t direction, max3510x_direction_result_t * p_result )
@@ -552,25 +555,53 @@ float_t max3510x_calibration_factor( float_t input_frequency )
 	return (input_frequency)/((float_t)FREQ_REF);
 }
 
+int32_t max3510x_fixed_to_time( const max3510x_fixed_t *p_fixed )
+{
+	return (p_fixed->integer << 16) | p_fixed->fraction;
+}
+
+double_t max3510x_time_to_double( max3510x_time_t time )
+{
+	const double_t c = 1.0 / (FREQ_REF*65536.0);
+	return (double_t)time * c;
+}
+
+max3510x_time_t max3510x_float_to_time( float_t time )
+{
+	const float_t c = (FREQ_REF*65536.0);
+	return time * c;
+}
+
+float_t max3510x_time_to_float( max3510x_time_t time )
+{
+	const float_t c = 1.0 / (FREQ_REF*65536.0);
+	return (float_t)time * c;
+}
+
 float_t max3510x_fixed_to_float( const max3510x_fixed_t *p_number )
 {
 	// convert an integer/fraction formated register value to a 32-bit float
-
-	float_t integer = ((float_t)p_number->integer)*((float_t)(1.0/FREQ_REF));
-	float_t fraction = ((float_t)p_number->fraction)*((float_t)(1.0/(FREQ_REF*65536.0)));
-	return integer + fraction;
+	return max3510x_time_to_float(max3510x_fixed_to_time(p_number));
 }
 
 double_t max3510x_fixed_to_double( const max3510x_fixed_t *p_number )
 {
 	// convert an integer/fraction formated register value to a 64-bit float
-
-	double_t integer = ((double_t)p_number->integer)*((double_t)(1.0/FREQ_REF));
-	double_t fraction = ((double_t)p_number->fraction)*((double_t)(1.0/(FREQ_REF*65536.0)));
-	return integer + fraction;
+	return max3510x_time_to_double(max3510x_fixed_to_time(p_number));
 }
 
-void max3510x_convert_results( max3510x_float_results_t *p_float_results, const max3510x_results_t * p_results )
+void max3510x_convert_temp_results( max3510x_float_temp_results_t *p_float_results, const max3510x_temp_results_t * p_results )
+{
+	uint8_t i;
+	for(i=0;i<MAX3510X_TEMP_COUNT;i++)
+	{
+		p_float_results->temp[i] = max3510x_fixed_to_float( &p_results->temp[i] );
+		p_float_results->ave_temp[i] = max3510x_fixed_to_float( &p_results->ave_temp[i] );
+	}
+}
+
+
+void max3510x_convert_tof_results( max3510x_float_tof_results_t *p_float_results, const max3510x_tof_results_t * p_results )
 {
 	// convert all measurement results to 32-bit floats
 
@@ -591,12 +622,6 @@ void max3510x_convert_results( max3510x_float_results_t *p_float_results, const 
 
 	p_float_results->tof_diff_ave = max3510x_fixed_to_float( &p_results->tof_diff_ave );
 
-	for(i=0;i<MAX3510X_TEMP_COUNT;i++)
-	{
-		p_float_results->temp[i] = max3510x_fixed_to_float( &p_results->temp[i] );
-		p_float_results->ave_temp[i] = max3510x_fixed_to_float( &p_results->ave_temp[i] );
-	}
-	p_float_results->calibration = max3510x_fixed_to_float( &p_results->calibration );
 }
 
 #if defined(MAX35103)
@@ -667,4 +692,121 @@ uint16_t max3510x_spi_test( max3510x_t p_max3510x )
 	return e;
 }
 	
+	
+void max3510x_read_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config )
+{
+	// retreive hit wave count and index configuration.
+
+#if defined(MAX35102)
+	max3510x_register3_t hitregs;
+#else
+	max3510x_register5_t hitregs;
+#endif
+	max3510x_read_registers( NULL, MAX3510X_REG_TOF2, (max3510x_register_t*)&hitregs, sizeof(hitregs) );
+	p_hitwave_config->hit_count = MAX3510X_REG_TOF2_STOP( MAX3510X_REG_GET(TOF2_STOP, hitregs.value[0] ) );
+
+	if( p_hitwave_config->hit_count >= 1 )
+		p_hitwave_config->hit_wave[0] = MAX3510X_REG_GET(TOF3_HIT1WV, hitregs.value[1] );
+	if( p_hitwave_config->hit_count >= 2 )
+		p_hitwave_config->hit_wave[1] = MAX3510X_REG_GET(TOF3_HIT2WV, hitregs.value[1] );
+	if( p_hitwave_config->hit_count >= 3 )
+		p_hitwave_config->hit_wave[2] = MAX3510X_REG_GET(TOF4_HIT3WV, hitregs.value[2] );
+#if !defined(MAX35102)
+	if( p_hitwave_config->hit_count >= 4 )
+		p_hitwave_config->hit_wave[3] = MAX3510X_REG_GET(TOF4_HIT4WV, hitregs.value[2] );
+	if( p_hitwave_config->hit_count >= 5 )
+		p_hitwave_config->hit_wave[4] = MAX3510X_REG_GET(TOF5_HIT5WV, hitregs.value[3] );
+	if( p_hitwave_config->hit_count >= 6 )
+		p_hitwave_config->hit_wave[5] = MAX3510X_REG_GET(TOF5_HIT6WV, hitregs.value[3] );
+#endif
+}
+
+max3510x_time_t max3510x_wave_period( const max3510x_hitwave_config_t *p_config, const max3510x_fixed_t *p_hitwave_times )
+{
+	// calculates the average period of the received wave based on the hit values and the hit wave configuration.
+	// this routine requires at least two hit waves times in order to calculate the period.
+	max3510x_time_t period = 0;
+	if( p_config->hit_count > 1 )
+	{
+		uint8_t i;
+		max3510x_time_t wave_delta;
+		max3510x_time_t period_sum=0;
+		for(i=1;i<p_config->hit_count;i++)
+		{
+			wave_delta = max3510x_fixed_to_time( &p_hitwave_times[i] ) - max3510x_fixed_to_time( &p_hitwave_times[i-1] );
+			period_sum += wave_delta / ( p_config->hit_wave[i] - p_config->hit_wave[i-1] );
+		}
+		period = period_sum / (p_config->hit_count - 1);
+	}
+	return period;
+}
+
+
+int8_t max3510x_wave_shift( max3510x_time_t ref_tof, max3510x_time_t sample_tof, max3510x_time_t osc_period )
+{
+	// This function is used to detect tof values that differ by more than 1/2 of an oscillation period
+	// when compared to a reference sample tof (likely the previous known good sample).
+	// This is important to know because ultrasonic amplitude variations can cause tof values to 'shift' in time by
+	// an integer number of oscillation periods and thereby cause time measurement errors.
+	// 
+	// return value is a signed integer that indicates how 'sample_tof' compares to 'ref_tof' in terms of oscillation period 'osc_period'.
+	// negative values indicate that 'ref_tof' has shifted earlier in time compared to 'sample_tof'
+	// positive values indicate that 'ref_tof' has shifted later in time compared to 'sample_tof'
+	// zero indicates that no shift occured and that 'sample_tof' is valid.
+	// 
+	// 'ref_tof' is the time-of-flight of a correctly indexed wave
+	// 'sample_tof' is the time-of-flight of an unknown wave.
+	// 'osc_period' is the typical oscillation period of ref_tof and sample_tof
+
+	int8_t shift;
+	max3510x_time_t half_osc_period = osc_period >> 1;
+	max3510x_time_t delta = sample_tof - ref_tof;
+	max3510x_time_t abs_delta = delta>=0 ? delta : -delta;
+	shift = (abs_delta + half_osc_period) / osc_period;
+	shift *= delta > 0 ? 1 : -1;
+
+	return shift;
+}
+
+void max3510x_read_thresholds( max3510x_t p_max3510x, int8_t * p_up, int8_t * p_down )
+{
+	// returns the T1 (aka early edge) threshold in both directions
+	max3510x_register2_t t1_offsets;
+	max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF6, (max3510x_register_t*)&t1_offsets, sizeof(t1_offsets) );
+	*p_up = MAX3510X_REG_GET(TOF6_C_OFFSETUP,t1_offsets.value[0]);
+	*p_down = MAX3510X_REG_GET(TOF7_C_OFFSETDN,t1_offsets.value[1]);
+}
+
+void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down )
+{
+	// sets the T1 (aka early edge) threshold in both directions.
+	// implicity sets the return threshold to zero which is fine for most applications.
+
+	max3510x_register2_t t1_offsets;
+	t1_offsets.value[0] = MAX3510X_REG_SET( TOF6_C_OFFSETUP, up );
+	t1_offsets.value[1] = MAX3510X_REG_SET( TOF7_C_OFFSETDN, down );
+	max3510x_write_registers( p_max3510x,MAX3510X_REG_TOF6, (max3510x_register_t*)&t1_offsets, sizeof(t1_offsets) );
+}
+
+void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config )
+{
+#if defined(MAX35104)	
+		max3510x_read_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&p_config->max35104_registers, sizeof(p_config->max35104_registers) );
+#endif
+		max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_config->common, sizeof(p_config->common) );
+}
+
+void max3510x_write_config( max3510x_t p_max3510x, max3510x_registers_t * p_regs )
+{
+
+#if defined(MAX35104)
+	// read/writeback AFE1 register to unlock
+	uint16_t write_back = max3510x_unlock(p_max3510x);
+	p_regs->max35104_registers.afe1 |= MAX3510X_REG_SET(AFE1_WRITEBACK,write_back);
+	max3510x_write_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&p_regs->max35104_registers, sizeof(p_regs->max35104_registers) );
+
+#endif // #if defined(MAX35104)
+
+	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_regs->common, sizeof(p_regs->common) );
+}
 

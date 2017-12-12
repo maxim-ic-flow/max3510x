@@ -89,15 +89,13 @@ typedef struct _max3510x_measurement_t
 	// raw measurement data returned by the MAX3510x
 	uint8_t				t2_ideal;	// t1/ideal ratio
 	uint8_t				t1_t2;		// t1/t2 ratio (use max3510x_ratio_to_float() )
-	max3510x_fixed_t	hit[6];		// hit values (MAX35101 only returns 3 max)
+	max3510x_fixed_t	hit[6];		// hit values (MAX35102 only returns 3 hits)
 	max3510x_fixed_t	average;	// average of all hit values
 }
 max3510x_measurement_t;
 
-typedef struct _max3510x_results_t
+typedef struct _max3510x_tof_results_t
 {
-	// raw measurement data returned by the MAX3510x
-
 	uint8_t					start_register;
 	max3510x_measurement_t	up;
 	max3510x_measurement_t	down;
@@ -110,6 +108,12 @@ typedef struct _max3510x_results_t
 	uint8_t					tof_range;
 #endif
 	max3510x_fixed_t		tof_diff_ave;
+}
+max3510x_tof_results_t;
+
+typedef struct _max3510x_temp_results_t
+{
+	uint8_t					start_register;
 	max3510x_fixed_t		temp[4];
 #if defined(__BIG_ENDIAN)
 	uint8_t					undefined2;
@@ -119,9 +123,8 @@ typedef struct _max3510x_results_t
 	uint8_t					undefined2;
 #endif
 	max3510x_fixed_t		ave_temp[4];
-	max3510x_fixed_t		calibration;
 }
-max3510x_results_t;
+max3510x_temp_results_t;
 
 typedef struct _max3510x_direction_result_t
 {
@@ -242,8 +245,9 @@ typedef struct _max3510x_registers_t
 }
 max3510x_registers_t;
 
-
 typedef void*  max3510x_t;
+
+typedef int32_t max3510x_time_t;
 
 #pragma pack()
 
@@ -260,7 +264,7 @@ max3510x_float_measurement_t;
 
 #define MAX3510X_TEMP_COUNT	4
 
-typedef struct _max3510x_float_results_t
+typedef struct _max3510x_float_tof_results_t
 {
 	// 32-bit float representation for all measurement data
 
@@ -268,11 +272,15 @@ typedef struct _max3510x_float_results_t
 	max3510x_float_measurement_t	down;
 	float_t				tof_diff;
 	float_t				tof_diff_ave;
+}
+max3510x_float_tof_results_t;
+
+typedef struct _max3510x_float_temp_results_t
+{
 	float_t				temp[MAX3510X_TEMP_COUNT];
 	float_t				ave_temp[MAX3510X_TEMP_COUNT];
-	float_t				calibration;
 }
-max3510x_float_results_t;
+max3510x_float_temp_results_t;
 
 typedef enum _max3510x_direction_t
 {
@@ -283,9 +291,13 @@ max3510x_direction_t;
 
 void max3510x_set_measurement_delay(max3510x_t p_max3510x, float_t delay_us );
 float_t max3510x_fixed_to_float( const max3510x_fixed_t *p_number );
+float_t max3510x_time_to_float( max3510x_time_t time );
+max3510x_time_t max3510x_float_to_time( float_t time );
 double_t max3510x_fixed_to_double(const max3510x_fixed_t *p_number );
+double_t max3510x_time_to_double( max3510x_time_t time );
 float_t max3510x_ratio_to_float( uint8_t fixed );
-void max3510x_convert_results( max3510x_float_results_t *p_float_results, const max3510x_results_t * p_results );
+void max3510x_convert_tof_results( max3510x_float_tof_results_t *p_float_results, const max3510x_tof_results_t * p_results );
+void max3510x_convert_temp_results( max3510x_float_temp_results_t *p_float_results, const max3510x_temp_results_t * p_results );
 bool max3510x_validate_measurement( const max3510x_measurement_t *p_measurement, uint8_t hit_count );
 void max3510x_read_fixed(max3510x_t p_max3510x, uint8_t reg, max3510x_fixed_t *p_fixed );
 void max3510x_read_ratios( max3510x_t p_max3510x, uint8_t reg, uint8_t *p_t1_t2, uint8_t *p_t2_ideal );
@@ -295,7 +307,8 @@ void max3510x_write_registers(max3510x_t p_max3510x, uint8_t register_offset, ma
 void max3510x_write_registers_const(max3510x_t p_max3510x, const max3510x_register_t *p_reg, uint8_t size );
 void max3510x_read_registers(max3510x_t p_max3510x, uint8_t register_offset, max3510x_register_t *p_reg, uint8_t size );
 uint16_t max3510x_interrupt_status(max3510x_t p_max3510x );
-void max3510x_read_results(max3510x_t p_max3510x, max3510x_results_t *p_results );
+void max3510x_read_tof_results(max3510x_t p_max3510x, max3510x_tof_results_t *p_results );
+void max3510x_read_temp_results( max3510x_t p_max3510x, max3510x_temp_results_t *p_results );
 void max3510x_read_direction( max3510x_t p_max3510x, max3510x_direction_t direction, max3510x_direction_result_t * p_result );
 void max3510x_init(max3510x_t p_max3510x, const max3510x_registers_t * p_init );
 void max3510x_tof_up(max3510x_t p_max3510x );
@@ -363,13 +376,33 @@ void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, u
 #endif
 
 
-#define MAX3510X_WRITE_BITFIELD( c, r, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(r##_##bf)) << MAX3510X_REG_##r##_##bf##_SHIFT  )
-#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(##r##_##bf##) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
+#define MAX3510X_WRITE_BITFIELD( c, rr, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##rr , MAX3510X_REG_MASK(rr##_##bf) << MAX3510X_REG_##rr##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(rr##_##bf)) << MAX3510X_REG_##rr##_##bf##_SHIFT  )
+
+#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
 
 void max3510x_write_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
 uint16_t max3510x_read_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask );
 
 uint16_t max3510x_spi_test( max3510x_t p_max3510x );
+
+typedef struct _max3510x_hitwave_config_t
+{
+	uint8_t		hit_count;
+	uint8_t		hit_wave[MAX3510X_MAX_HITCOUNT];
+}
+max3510x_hitwave_config_t;
+
+void max3510x_get_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config );
+max3510x_time_t max3510x_fixed_to_time( const max3510x_fixed_t *p_fixed );
+max3510x_time_t max3510x_wave_period(  const max3510x_hitwave_config_t *p_config, const max3510x_fixed_t *p_hitwave_times );
+int8_t max3510x_wave_shift( max3510x_time_t ref_tof, max3510x_time_t sample_tof, max3510x_time_t osc_period );
+
+void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down );
+void max3510x_read_thresholds( max3510x_t p_max3510x, int8_t * p_up, int8_t * p_down );
+void max3510x_read_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config );
+
+void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config );
+void max3510x_write_config( max3510x_t p_max3510x, max3510x_registers_t * p_regs );
 
 #endif
 
