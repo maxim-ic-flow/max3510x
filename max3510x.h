@@ -385,21 +385,14 @@ uint16_t max3510x_read_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint1
 
 uint16_t max3510x_spi_test( max3510x_t p_max3510x );
 
-typedef struct _max3510x_hitwave_config_t
-{
-	uint8_t		hit_count;
-	uint8_t		hit_wave[MAX3510X_MAX_HITCOUNT];
-}
-max3510x_hitwave_config_t;
+void max3510x_get_hitwaves( max3510x_t p_max3510x, uint8_t *p_hitwave );
+void max3510x_set_hitwaves( max3510x_t p_max3510x, const uint8_t *p_hitwave );
 
-void max3510x_get_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config );
 max3510x_time_t max3510x_fixed_to_time( const max3510x_fixed_t *p_fixed );
-max3510x_time_t max3510x_wave_period(  const max3510x_hitwave_config_t *p_config, const max3510x_fixed_t *p_hitwave_times );
 int8_t max3510x_wave_shift( max3510x_time_t ref_tof, max3510x_time_t sample_tof, max3510x_time_t osc_period );
 
 void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down );
 void max3510x_read_thresholds( max3510x_t p_max3510x, int8_t * p_up, int8_t * p_down );
-void max3510x_read_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config );
 
 void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config );
 void max3510x_write_config( max3510x_t p_max3510x, max3510x_registers_t * p_regs );

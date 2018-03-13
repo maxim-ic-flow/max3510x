@@ -692,55 +692,42 @@ uint16_t max3510x_spi_test( max3510x_t p_max3510x )
 	return e;
 }
 	
-	
-void max3510x_read_hitwave_config( max3510x_hitwave_config_t *p_hitwave_config )
+void max3510x_get_hitwaves( max3510x_t p_max3510x, uint8_t *p_hitwave )
 {
-	// retreive hit wave count and index configuration.
-
 #if defined(MAX35102)
-	max3510x_register3_t hitregs;
+	max3510x_register2_t hitregs;
 #else
-	max3510x_register5_t hitregs;
+	max3510x_register3_t hitregs;
 #endif
-	max3510x_read_registers( NULL, MAX3510X_REG_TOF2, (max3510x_register_t*)&hitregs, sizeof(hitregs) );
-	p_hitwave_config->hit_count = MAX3510X_REG_TOF2_STOP( MAX3510X_REG_GET(TOF2_STOP, hitregs.value[0] ) );
-
-	if( p_hitwave_config->hit_count >= 1 )
-		p_hitwave_config->hit_wave[0] = MAX3510X_REG_GET(TOF3_HIT1WV, hitregs.value[1] );
-	if( p_hitwave_config->hit_count >= 2 )
-		p_hitwave_config->hit_wave[1] = MAX3510X_REG_GET(TOF3_HIT2WV, hitregs.value[1] );
-	if( p_hitwave_config->hit_count >= 3 )
-		p_hitwave_config->hit_wave[2] = MAX3510X_REG_GET(TOF4_HIT3WV, hitregs.value[2] );
+	max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF3, (max3510x_register_t*)&hitregs, sizeof(hitregs) );
+		p_hitwave[0] = MAX3510X_REG_GET(TOF3_HIT1WV, hitregs.value[0] );
+		p_hitwave[1] = MAX3510X_REG_GET(TOF3_HIT2WV, hitregs.value[0] );
+		p_hitwave[2] = MAX3510X_REG_GET(TOF4_HIT3WV, hitregs.value[1] );
 #if !defined(MAX35102)
-	if( p_hitwave_config->hit_count >= 4 )
-		p_hitwave_config->hit_wave[3] = MAX3510X_REG_GET(TOF4_HIT4WV, hitregs.value[2] );
-	if( p_hitwave_config->hit_count >= 5 )
-		p_hitwave_config->hit_wave[4] = MAX3510X_REG_GET(TOF5_HIT5WV, hitregs.value[3] );
-	if( p_hitwave_config->hit_count >= 6 )
-		p_hitwave_config->hit_wave[5] = MAX3510X_REG_GET(TOF5_HIT6WV, hitregs.value[3] );
+		p_hitwave[3] = MAX3510X_REG_GET(TOF4_HIT4WV, hitregs.value[1] );
+		p_hitwave[4] = MAX3510X_REG_GET(TOF5_HIT5WV, hitregs.value[2] );
+		p_hitwave[5] = MAX3510X_REG_GET(TOF5_HIT6WV, hitregs.value[2] );
 #endif
 }
 
-max3510x_time_t max3510x_wave_period( const max3510x_hitwave_config_t *p_config, const max3510x_fixed_t *p_hitwave_times )
+void max3510x_set_hitwaves(  max3510x_t p_max3510x, const uint8_t *p_hitwave )
 {
-	// calculates the average period of the received wave based on the hit values and the hit wave configuration.
-	// this routine requires at least two hit waves times in order to calculate the period.
-	max3510x_time_t period = 0;
-	if( p_config->hit_count > 1 )
-	{
-		uint8_t i;
-		max3510x_time_t wave_delta;
-		max3510x_time_t period_sum=0;
-		for(i=1;i<p_config->hit_count;i++)
-		{
-			wave_delta = max3510x_fixed_to_time( &p_hitwave_times[i] ) - max3510x_fixed_to_time( &p_hitwave_times[i-1] );
-			period_sum += wave_delta / ( p_config->hit_wave[i] - p_config->hit_wave[i-1] );
-		}
-		period = period_sum / (p_config->hit_count - 1);
-	}
-	return period;
-}
+#if defined(MAX35102)
+	max3510x_register2_t hitregs;
+#else
+	max3510x_register3_t hitregs;
+#endif
 
+		hitregs.value[0] = MAX3510X_REG_SET(TOF3_HIT1WV, p_hitwave[0] );
+		hitregs.value[0] |= MAX3510X_REG_SET(TOF3_HIT2WV, p_hitwave[1] );
+		hitregs.value[1] = MAX3510X_REG_SET(TOF4_HIT3WV, p_hitwave[2] );
+#if !defined(MAX35102)
+		hitregs.value[1] |= MAX3510X_REG_SET(TOF4_HIT4WV, p_hitwave[3] );
+		hitregs.value[2] = MAX3510X_REG_SET(TOF5_HIT5WV, p_hitwave[4] );
+		hitregs.value[2] |= MAX3510X_REG_SET(TOF5_HIT6WV, p_hitwave[5] );
+#endif
+	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF3, (max3510x_register_t*)&hitregs, sizeof(hitregs) );
+}
 
 int8_t max3510x_wave_shift( max3510x_time_t ref_tof, max3510x_time_t sample_tof, max3510x_time_t osc_period )
 {
