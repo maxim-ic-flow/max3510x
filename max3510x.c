@@ -783,17 +783,19 @@ void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config
 		max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_config->common, sizeof(p_config->common) );
 }
 
-void max3510x_write_config( max3510x_t p_max3510x, max3510x_registers_t * p_regs )
+void max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs )
 {
-
+	max3510x_registers_t swap;
+	memcpy( &swap, p_regs, sizeof(swap) );
+	
 #if defined(MAX35104)
 	// read/writeback AFE1 register to unlock
 	uint16_t write_back = max3510x_unlock(p_max3510x);
-	p_regs->max35104_registers.afe1 |= MAX3510X_REG_SET(AFE1_WRITEBACK,write_back);
-	max3510x_write_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&p_regs->max35104_registers, sizeof(p_regs->max35104_registers) );
+	swap.max35104_registers.afe1 |= MAX3510X_REG_SET(AFE1_WRITEBACK,write_back);
+	max3510x_write_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&swap.max35104_registers, sizeof(swap.max35104_registers) );
 
 #endif // #if defined(MAX35104)
 
-	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_regs->common, sizeof(p_regs->common) );
+	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&swap.common, sizeof(swap.common) );
 }
 

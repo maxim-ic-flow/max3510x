@@ -804,12 +804,14 @@
 
 #define MAX3510X_REG_T1INT						0xE7
 #define MAX3510X_REG_T1FRAC						0xE8
+#if !defined(MAX35104)
 #define MAX3510X_REG_T2INT						0xE9
 #define MAX3510X_REG_T2FRAC						0xEA
+#endif
 
-#if !defined(MAX35104)
 #define MAX3510X_REG_T3INT						0xEB
 #define MAX3510X_REG_T3FRAC						0xEC
+#if !defined(MAX35104)
 #define MAX3510X_REG_T4INT						0xED
 #define MAX3510X_REG_T4FRAC						0xEE
 #endif

@@ -395,7 +395,7 @@ void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down );
 void max3510x_read_thresholds( max3510x_t p_max3510x, int8_t * p_up, int8_t * p_down );
 
 void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config );
-void max3510x_write_config( max3510x_t p_max3510x, max3510x_registers_t * p_regs );
+void max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs );
 
 #endif
 
