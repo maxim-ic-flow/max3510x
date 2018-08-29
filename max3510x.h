@@ -295,7 +295,7 @@ float_t max3510x_time_to_float( max3510x_time_t time );
 max3510x_time_t max3510x_float_to_time( float_t time );
 double_t max3510x_fixed_to_double(const max3510x_fixed_t *p_number );
 double_t max3510x_time_to_double( max3510x_time_t time );
-float_t max3510x_ratio_to_float( uint8_t fixed );
+float_t max3510x_ratio_to_float( uint8_t ratio );
 void max3510x_convert_tof_results( max3510x_float_tof_results_t *p_float_results, const max3510x_tof_results_t * p_results );
 void max3510x_convert_temp_results( max3510x_float_temp_results_t *p_float_results, const max3510x_temp_results_t * p_results );
 bool max3510x_validate_measurement( const max3510x_measurement_t *p_measurement, uint8_t hit_count );
