@@ -376,12 +376,11 @@ void max3510x_spi_xfer(max3510x_t p_max3510x, void *pv_in, const void *pv_out, u
 #endif
 
 
-#define MAX3510X_WRITE_BITFIELD( c, rr, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##rr , MAX3510X_REG_MASK(rr##_##bf) << MAX3510X_REG_##rr##_##bf##_SHIFT, (v & MAX3510X_REG_MASK(rr##_##bf)) << MAX3510X_REG_##rr##_##bf##_SHIFT  )
+#define MAX3510X_WRITE_BITFIELD( c, r, bf, v ) max3510x_write_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_##r##_##bf##_SHIFT, MAX3510X_REG_##r##_##bf##_WIDTH, v )
+#define MAX3510X_READ_BITFIELD( c, r, bf) max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_##r##_##bf##_SHIFT, MAX3510X_REG_##r##_##bf##_WIDTH )
 
-#define MAX3510X_READ_BITFIELD( c, r, bf) (max3510x_read_bitfield( (max3510x_t*)c, MAX3510X_REG_##r, MAX3510X_REG_MASK(r##_##bf) << MAX3510X_REG_##r##_##bf##_SHIFT ) >> MAX3510X_REG_##r##_##bf##_SHIFT)
-
-void max3510x_write_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value );
-uint16_t max3510x_read_bitfield(max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask );
+uint16_t max3510x_write_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint8_t shift, uint8_t width, uint16_t value );
+uint16_t max3510x_read_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint8_t shift, uint8_t width );
 
 uint16_t max3510x_spi_test( max3510x_t p_max3510x );
 
@@ -395,7 +394,7 @@ void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down );
 void max3510x_read_thresholds( max3510x_t p_max3510x, int8_t * p_up, int8_t * p_down );
 
 void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config );
-void max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs );
+uint16_t max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs );
 
 #endif
 

@@ -107,22 +107,21 @@ uint16_t max3510x_write_shadow_bitfield( max3510x_t p_max3510x, uint8_t reg_offs
 	return value;
 }
 
-void max3510x_write_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask, uint16_t value )
+uint16_t max3510x_write_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint8_t shift, uint8_t width, uint16_t value )
 {
-	// value must be shifted into the proper posisiton
-	// use the MAX3510X_WRITE_BITFIELD macro instead
+	uint16_t mask = ((1 << width)-1)<<shift;
+	value = (value<<shift)&mask;
 	value = (max3510x_read_register(p_max3510x, reg_offset ) & ~mask) | value;
 	max3510x_write_register(p_max3510x, reg_offset, value );
+	return value;
 }
 
-uint16_t max3510x_read_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint16_t mask )
+uint16_t max3510x_read_bitfield( max3510x_t p_max3510x, uint8_t reg_offset, uint8_t shift, uint8_t width )
 {
-	// returned bitfield must be shifted into the proper posisiton
-	// use the MAX3510X_READ_BITFIELD macro instead
-
+	uint16_t mask = ((1 << width)-1)<<shift;
 	uint16_t value;
 	value = max3510x_read_register(p_max3510x, reg_offset ) & mask;
-	return value;
+	return value >> shift;
 }
 
 static void send_opcode( max3510x_t p_max3510x, uint8_t code )
@@ -783,19 +782,21 @@ void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config
 		max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_config->common, sizeof(p_config->common) );
 }
 
-void max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs )
+uint16_t max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_t * p_regs )
 {
+    uint16_t write_back = 0;
 	max3510x_registers_t swap;
 	memcpy( &swap, p_regs, sizeof(swap) );
 	
 #if defined(MAX35104)
 	// read/writeback AFE1 register to unlock
-	uint16_t write_back = max3510x_unlock(p_max3510x);
+	write_back = max3510x_unlock(p_max3510x);
 	swap.max35104_registers.afe1 |= MAX3510X_REG_SET(AFE1_WRITEBACK,write_back);
 	max3510x_write_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&swap.max35104_registers, sizeof(swap.max35104_registers) );
-
+    
 #endif // #if defined(MAX35104)
 
 	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&swap.common, sizeof(swap.common) );
+    return write_back;
 }
 
