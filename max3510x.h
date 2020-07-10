@@ -78,7 +78,7 @@ max3510x_event_timing_mode_t;
 typedef struct _max3510x_fixed_t
 {
 	// integer/fraction representation used by the MAX3510x
-	// use max3510x_ratio_to_float() 
+	// use max3510x_ratio_to_float()
 	int16_t		integer;
 	uint16_t	fraction;
 }
@@ -133,12 +133,14 @@ typedef struct _max3510x_direction_result_t
 }
 max3510x_direction_result_t;
 
-
+#pragma pack(push, 2)
 typedef struct _max3510x_register_t
 {
-	uint8_t		offset;
+	uint8_t	    offset;
 	uint16_t	value;
 }
+#pragma pack(pop)
+
 max3510x_register_t;
 
 typedef struct _max3510x_fixed_register_t
@@ -326,7 +328,7 @@ uint16_t max3510x_control_register( max3510x_t p_max3510x );
 
 uint16_t max3510x_unlock(max3510x_t *p_max3510x );
 void max3510x_flash_configuration(max3510x_t p_max3510x );
-	
+
 #else
 
 void max3510x_bandpass_calibrate(max3510x_t p_max3510x );
