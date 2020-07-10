@@ -57,7 +57,7 @@ void max3510x_write_registers( max3510x_t p_max3510x, uint8_t register_offset, m
 	uint16_t *p = &p_reg->value;
 
 #endif
-	
+
 	p_reg->offset = MAX3510X_OPCODE_WRITE_REG(register_offset);
 
 #if defined(MAX3510X_ENDIAN_SWAP)
@@ -483,8 +483,8 @@ float_t max3510x_ratio_to_float( uint8_t ratio )
 	// a 32-bit floating point value
 
 	float_t f = 0;
-	static const float_t c_ratio[8] = 
-	{ 
+	static const float_t c_ratio[8] =
+	{
 		(float_t)(1.0/128.0), (float_t)(1.0/64.0), (float_t)(1.0/32.0), (float_t)(1.0/16.0),
 		(float_t)(1.0/8.0), (float_t)(1.0/4.0), (float_t)(1.0/2.0), (float_t)(1.0)
 	};
@@ -568,7 +568,7 @@ double_t max3510x_time_to_double( max3510x_time_t time )
 max3510x_time_t max3510x_float_to_time( float_t time )
 {
 	const float_t c = (FREQ_REF*65536.0);
-	return time * c;
+	return (time * c);
 }
 
 float_t max3510x_time_to_float( max3510x_time_t time )
@@ -679,7 +679,7 @@ void max3510x_enable_interrupt( max3510x_t p_max3510x, bool enable )
 uint16_t max3510x_spi_test( max3510x_t p_max3510x )
 {
 	// test to help validate SPI hardware and max3510x_spi_xfer()
-	
+
 	uint32_t x;
 	uint16_t e = 0;
 	for(x=0;x<0x10000;x++)
@@ -690,7 +690,7 @@ uint16_t max3510x_spi_test( max3510x_t p_max3510x )
 	}
 	return e;
 }
-	
+
 void max3510x_get_hitwaves( max3510x_t p_max3510x, uint8_t *p_hitwave )
 {
 #if defined(MAX35102)
@@ -734,12 +734,12 @@ int8_t max3510x_wave_shift( max3510x_time_t ref_tof, max3510x_time_t sample_tof,
 	// when compared to a reference sample tof (likely the previous known good sample).
 	// This is important to know because ultrasonic amplitude variations can cause tof values to 'shift' in time by
 	// an integer number of oscillation periods and thereby cause time measurement errors.
-	// 
+	//
 	// return value is a signed integer that indicates how 'sample_tof' compares to 'ref_tof' in terms of oscillation period 'osc_period'.
 	// negative values indicate that 'ref_tof' has shifted earlier in time compared to 'sample_tof'
 	// positive values indicate that 'ref_tof' has shifted later in time compared to 'sample_tof'
 	// zero indicates that no shift occured and that 'sample_tof' is valid.
-	// 
+	//
 	// 'ref_tof' is the time-of-flight of a correctly indexed wave
 	// 'sample_tof' is the time-of-flight of an unknown wave.
 	// 'osc_period' is the typical oscillation period of ref_tof and sample_tof
@@ -776,7 +776,7 @@ void max3510x_write_thresholds( max3510x_t p_max3510x, int8_t up, int8_t down )
 
 void max3510x_read_config( max3510x_t p_max3510x, max3510x_registers_t *p_config )
 {
-#if defined(MAX35104)	
+#if defined(MAX35104)
 		max3510x_read_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&p_config->max35104_registers, sizeof(p_config->max35104_registers) );
 #endif
 		max3510x_read_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&p_config->common, sizeof(p_config->common) );
@@ -787,13 +787,13 @@ uint16_t max3510x_write_config( max3510x_t p_max3510x, const max3510x_registers_
     uint16_t write_back = 0;
 	max3510x_registers_t swap;
 	memcpy( &swap, p_regs, sizeof(swap) );
-	
+
 #if defined(MAX35104)
 	// read/writeback AFE1 register to unlock
 	write_back = max3510x_unlock(p_max3510x);
 	swap.max35104_registers.afe1 |= MAX3510X_REG_SET(AFE1_WRITEBACK,write_back);
 	max3510x_write_registers( p_max3510x, MAX3510X_REG_SWITCHER1, (max3510x_register_t*)&swap.max35104_registers, sizeof(swap.max35104_registers) );
-    
+
 #endif // #if defined(MAX35104)
 
 	max3510x_write_registers( p_max3510x, MAX3510X_REG_TOF1, (max3510x_register_t*)&swap.common, sizeof(swap.common) );
