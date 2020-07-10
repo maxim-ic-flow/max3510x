@@ -568,7 +568,7 @@ double_t max3510x_time_to_double( max3510x_time_t time )
 max3510x_time_t max3510x_float_to_time( float_t time )
 {
 	const float_t c = (FREQ_REF*65536.0);
-	return (time * c);
+	return (max3510x_time_t)(time * c);
 }
 
 float_t max3510x_time_to_float( max3510x_time_t time )
